@@ -1,0 +1,259 @@
+
+//func p_cons(args Object) bool {
+//    return car(args).IsCons()
+//}
+//func p_nil(args Object) bool {
+//    return car(args).IsNil()
+//}
+//func p_true(args Object) bool {
+//    return car(args).IsTrue()
+//}
+//func p_const(args Object) bool {   
+//    return car(args).IsConst()
+//}
+
+//func fn_slice(x Object) (res []Object) {
+//    res = make([]Object, fn_len(x))
+//    i := 0
+//    for !x.IsNil() {
+//        res[i] = car(x)
+//        x = cdr(x)
+//        i++
+//    }
+//    return res
+//}
+//func fn_list(x ...Object) Object {
+//    if len(x) == 0 {
+//        return atom_Nil
+//    }    
+//    return cons(x[0], fn_list(x[1:]...))
+//}
+
+
+//func fn_len(x Object) (res int) {
+//    if x.IsAtom() {
+//        require(x.IsNil(), "can't evaluate len of not list object")
+//        return 0
+//    }
+//    
+//    return 1 + fn_len(cdr(x))
+//}
+
+//func fn_defun(args Object, env Object) Object {
+//    if DebugFlag { print("defun") }
+//    require(args.IsCons() && fn_len(args) > 1, "defun")
+//    
+//    fname := cons(atom(TQuote), car(args))
+//    f := fn_hashtag(cdr(args), env)
+//    
+//    return fn_setf(cons(fname, f), env)
+//}
+
+//func fn_setf(args Object, env Object) Object {
+//    if DebugFlag { print("setf") }
+//    require(args.IsCons() && fn_len(args) <= 2, "setf incorrect")
+
+//    args = fn_evalArgs(args, env)
+//    
+//    name := car(args)
+//    value := cadr(args)
+//    
+//    
+//    if y := fn_get(name, env); !y.IsNil() {
+//        y.(*AtomObject).SetValue(value)
+//    } else {
+//        require(env.IsCons(), "scope environment is incorrect")
+
+//        name.(*AtomObject).SetValue(value)
+//        env.(*ConsObject).SetCar(cons(name, car(env)))
+//    }
+//    return name
+//}
+
+//func fn_get(x Object, env Object) (Object) {
+//    if DebugFlag { print("get") }
+//    if x.IsCons() && fn_len(x) == 1 {
+//        x = car(x).(Object)
+//    }
+//        
+//    if !env.IsNil() && x.IsTrue() { 
+//        if env.IsAtom() {
+//            require(!env.IsConst(), "scope environment has const atoms")
+//            if x.IsEq(env) {
+//                return env
+//            } else {
+//                return atom_Nil
+//            }
+//        }
+//        if y := fn_get(x, car(env)); !y.IsNil() { return y }
+//        if y := fn_get(x, cdr(env)); !y.IsNil() { return y }
+//    }
+//        
+//    return atom_Nil    
+//}
+
+//func fn_zip(x Object, y Object) Object {
+//    if x.IsNil() {
+//        print(x)
+//        print(y)
+//        require(y.IsNil(), "zip with lists different length ")                
+//        return atom_Nil
+//    }    
+//    return cons(cons(car(x), car(y)), fn_zip(cdr(x), cdr(y)))
+//}
+
+//func fn_let(args Object, env Object) (res Object) {
+//    if DebugFlag { print("let") }
+//    pairs := car(args)
+//    body := cdr(args)
+//    
+//    env = cons(atom_Nil, env)
+
+//    for {        
+//        if pairs.IsNil() { break }
+//        pair := car(pairs)
+//        
+//        name := cons(atom(TQuote), car(pair))
+//        val := cdr(pair)
+//        
+//        fn_setf(cons(name, val), env)
+//        pairs = cdr(pairs)
+//        
+//    }
+//    
+//    return fn_evalForms(body, env)
+//}
+
+//func fn_hashtag(args, env Object) Object {
+//    var res Function = func (_args Object, _env Object) (Object) {
+//        _env = cons(env, _env)    
+//        _args = fn_evalArgs(_args, _env)
+//        return fn_lambda(cons(args, _args), _env)
+//    }
+//    
+//    return &AtomObject{"", &res}
+//}
+
+//func fn_lambda(lexpr Object, env Object) Object {
+//    if DebugFlag { print("lambda") }
+//       
+//    env = env
+//    
+//    vars := caar(lexpr)   
+//    args := cdr(lexpr)     
+//    
+//    print(lexpr)
+//    pairs := fn_zip(vars, args)
+//    body := cadr(car(lexpr))
+//    
+//    return fn_let(cons(pairs, cons(body, atom_Nil)), env)
+//}
+
+//func fn_evalArgs(args Object, env Object) (a Object) {
+//    if DebugFlag { print("evalArgs") }
+//    if args.IsNil() { 
+//        return atom_Nil 
+//    }    
+//    return cons(fn_eval(car(args), env), fn_evalArgs(cdr(args), env))
+//}
+
+//func fn_apply(expr Object, env Object) Object {  
+//    if DebugFlag { print("apply") }
+//    fname := car(expr)
+//    args := cdr(expr)
+//          
+//    fname = fn_eval(fname, env)
+//    require(fname.IsAtom(), fname.String() + " is not a function")
+//    val := fname.(*AtomObject).value
+//    
+//    if f, ok := val.(*Function); ok {
+//        res := (*f)(args, env)
+//        return res
+//    }
+//    if x := fn_get(fname, env); !x.IsNil() {
+//        tval := x.(*AtomObject).value.(*AtomObject)
+//        if f, ok := tval.value.(*Function); ok {
+//            res := (*f)(args, env)
+//            return res
+//        }
+//    }
+//    
+//    f, ok := val.(*ConsObject)
+//    require(ok, fname.String() + " is not of type list") 
+//    
+//    return fn_lambda(cons(f, args), env)
+//}
+
+//func fn_evalForms(forms Object, env Object) (res Object) {
+//    if forms.IsAtom() { 
+//        return fn_eval(forms, env) 
+//    }
+//    
+//    res = fn_eval(car(forms), env)
+//    if cdr(forms).IsNil() {
+//        return res
+//    }    
+//    return fn_evalForms(cdr(forms), env)
+//}
+
+func p2f(p func(Object) bool) (*Function) {
+    var res Function = func (args Object, env Object) (Object) {
+        if p(args) { 
+            return atom_T
+        }
+        return atom_Nil
+    }
+    
+    return &res
+}
+
+
+//func f2f(f func(Object, Object) Object) (*Function) {
+//    var res Function = func (args Object, env Object) (Object) {
+//        return f(args, env)
+//    }    
+//    return &res
+//}
+
+
+//func fn_eval(expr Object, env Object) (Object) {
+//    if DebugFlag { print("eval") }
+//    if expr.IsAtom() {      
+//        if expr.IsConst() {     
+//            return expr
+//        } else {
+//            if x := fn_get(expr, env); !x.IsNil() {
+//                return x.(*AtomObject).value.(Object)
+//            } else {
+//                raise(fmt.Sprintf("variable %v not bound", expr.(*AtomObject).name))
+//            }
+//        }
+//    } else if expr.IsCons() {
+//        return fn_apply(expr, env)
+//    }
+//    
+//    return atom_Nil
+//}
+
+        
+        
+//        &AtomObject{"null", &AtomObject{"", p2f(p_nil)}},
+//        &AtomObject{"eq", &AtomObject{"", p2f(p_eq)}},
+//        &AtomObject{"atom", &AtomObject{"", p2f(p_atom)}},
+//        &AtomObject{"consp", &AtomObject{"", p2f(p_cons)}},
+//        &AtomObject{"cons", &AtomObject{"", f2f(fn_cons)}},
+//        &AtomObject{"car", &AtomObject{"", f2f(fn_car)}},
+//        &AtomObject{"cdr", &AtomObject{"", f2f(fn_cdr)}},
+//        &AtomObject{TQuote, &AtomObject{"", f2f(fn_quote)}},
+//        &AtomObject{"defun", &AtomObject{"", f2f(fn_defun)}},
+//        &AtomObject{"setf", &AtomObject{"", f2f(fn_setf)}},
+//        &AtomObject{"find", &AtomObject{"", f2f(fn_get)}},
+//        &AtomObject{"let", &AtomObject{"", f2f(fn_let)}},
+//        &AtomObject{THashtag, &AtomObject{"", f2f(fn_hashtag)}},
+//        &AtomObject{"lambda", &AtomObject{"", f2f(fn_lambda)}},
+//        &AtomObject{"apply", &AtomObject{"", f2f(fn_apply)}},
+//        &AtomObject{"eval", &AtomObject{"", f2f(fn_eval)}})
+//    env = cons(t, atom_Nil)
+    
+//    return env
+
